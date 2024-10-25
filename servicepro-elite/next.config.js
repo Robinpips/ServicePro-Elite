@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Add any valid Next.js configuration options here
+  reactStrictMode: true,
+  experimental: {
+    instrumentationHook: false
+  }
 }
 
 module.exports = nextConfig

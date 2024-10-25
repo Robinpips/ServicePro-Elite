@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
-import { DashboardShell } from '../../components/DashboardShell'
-import { DashboardHeader } from '../../components/DashboardHeader'
+import { DashboardShell } from '@/components/DashboardShell'
+import { DashboardHeader } from '@/components/DashboardHeader'
 import { OverviewCards } from '@/components/overview-cards'
 import { RecentTickets } from '@/components/recent-tickets'
 import { TicketStatusChart } from '@/components/ticket-status-chart'
