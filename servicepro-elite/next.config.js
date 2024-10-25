@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Add any other valid Next.js configuration options here
+  swcMinify: true,
 }
 
 module.exports = nextConfig
