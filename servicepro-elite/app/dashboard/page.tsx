@@ -19,10 +19,10 @@ export default function DashboardPage() {
         </Suspense>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Suspense fallback={<CardSkeleton className="lg:col-span-4" />}>
+        <Suspense fallback={<CardSkeleton />}>
           <RecentTickets />
         </Suspense>
-        <Suspense fallback={<CardSkeleton className="lg:col-span-3" />}>
+        <Suspense fallback={<CardSkeleton />}>
           <TicketStatusChart />
         </Suspense>
       </div>
