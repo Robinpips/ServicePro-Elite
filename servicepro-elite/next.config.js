@@ -1,9 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    experimental: {
-      trace: false,
-    },
-    swcMinify: false,
-  }
-  
-  module.exports = nextConfig
+  // Add any valid Next.js configuration options here
+}
+
+module.exports = nextConfig
