@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react"
 type ToastType = "success" | "error" | "warning" | "info"
 
 interface ToastProps {
+  id: number
   message: string
   type: ToastType
   duration?: number
@@ -13,7 +14,7 @@ interface ToastProps {
 export function useToast() {
   const [toasts, setToasts] = useState<ToastProps[]>([])
 
-  const addToast = useCallback(({ message, type, duration = 3000 }: ToastProps) => {
+  const addToast = useCallback(({ message, type, duration = 3000 }: Omit<ToastProps, "id">) => {
     const id = Date.now()
     setToasts((prevToasts) => [...prevToasts, { id, message, type, duration }])
   }, [])
@@ -26,7 +27,7 @@ export function useToast() {
     const timer = setInterval(() => {
       setToasts((prevToasts) => {
         const now = Date.now()
-        return prevToasts.filter((toast) => now - toast.id < toast.duration)
+        return prevToasts.filter((toast) => now - toast.id < (toast.duration ?? 3000))
       })
     }, 1000)
 
