@@ -4,6 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useToast } from "./use-toast"
 
 const ToastProvider = ToastPrimitives.Provider
 
@@ -112,8 +113,17 @@ export {
 
 // Add the Toaster component
 export function Toaster() {
+  const { toasts, removeToast } = useToast()
+
   return (
     <ToastProvider>
+      {toasts.map((toast) => (
+        <Toast key={toast.id} variant={toast.type === "error" ? "destructive" : "default"}>
+          <ToastTitle>{toast.type.charAt(0).toUpperCase() + toast.type.slice(1)}</ToastTitle>
+          <ToastDescription>{toast.message}</ToastDescription>
+          <ToastClose onClick={() => removeToast(toast.id)} />
+        </Toast>
+      ))}
       <ToastViewport />
     </ToastProvider>
   )
