@@ -21,7 +21,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Bell, LogOut, Menu, PlusCircle } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toast"
 import { Settings as SettingsComponent } from "@/components/settings"
 import { HelpCenter } from "@/components/help-center"
 import Sidebar from "@/components/sidebar"
