@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/b23928b1-7aaa-40e3-af60-58e5a4edd57e/resourceGroups/Studentpc_group/providers/Microsoft.Web/sites/service-elite",
+    "appService.deploySubpath": "."
+}
