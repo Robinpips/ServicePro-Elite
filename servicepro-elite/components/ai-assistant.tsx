@@ -1,47 +1,33 @@
-'use client'
+"use client"
 
-import { useState } from 'react'
-import { useChat } from 'ai/react'
+import type React from "react"
+
+import { useState } from "react"
+import { useChat } from "ai/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useToast } from "@/components/ui/use-toast"
-import { useKnowledgeBase } from '@/hooks/use-knowledge-base'
+import { Loader2 } from "lucide-react"
 
 export function AIAssistant() {
-  const [context, setContext] = useState<string>('')
+  const [context, setContext] = useState("")
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: '/api/chat',
-    onFinish: (message) => handleAIResponse(message.content),
+    api: "/api/chat",
+    initialMessages: [
+      {
+        id: "1",
+        role: "system",
+        content: "You are a helpful IT service desk assistant.",
+      },
+    ],
   })
-  const { toast } = useToast()
-  const { addArticle } = useKnowledgeBase()
-
-  const handleContextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setContext(e.target.value)
-  }
 
   const handleMessageSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    handleSubmit(e, { options: { context } })
-  }
-
-  const handleAIResponse = (response: string) => {
-    // Check if the response contains new knowledge
-    if (response.includes("[NEW KNOWLEDGE]")) {
-      const newKnowledge = response.split("[NEW KNOWLEDGE]")[1].trim()
-      const [title, content] = newKnowledge.split(":")
-      
-      // Add the new knowledge to the knowledge base
-      addArticle({ title: title.trim(), content: content.trim() })
-      
-      toast({
-        title: "New Knowledge Added",
-        description: `A new article "${title.trim()}" has been added to the knowledge base.`,
-      })
-    }
+    if (!input.trim()) return
+    handleSubmit(e)
   }
 
   return (
@@ -51,38 +37,55 @@ export function AIAssistant() {
         <CardDescription>Ask me anything about your service desk!</CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[300px] sm:h-[400px] pr-4">
-          {messages.map((message, index) => (
-            <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
-              <div className={`flex items-end ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={message.role === 'user' ? '/user-avatar.png' : '/ai-avatar.png'} />
-                  <AvatarFallback>{message.role === 'user' ? 'U' : 'AI'}</AvatarFallback>
-                </Avatar>
-                <div className={`mx-2 p-3 rounded-lg ${message.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>
-                  {message.content}
+        <ScrollArea className="h-[400px] pr-4">
+          <div className="space-y-4">
+            {messages.map((message) => {
+              if (message.role === "system") return null
+              return (
+                <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                  <div className={`flex items-end gap-2 ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={message.role === "user" ? "/placeholder.svg" : "/placeholder.svg"} />
+                      <AvatarFallback>{message.role === "user" ? "U" : "AI"}</AvatarFallback>
+                    </Avatar>
+                    <div
+                      className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                        message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              )
+            })}
+          </div>
         </ScrollArea>
       </CardContent>
       <CardFooter>
-        <form onSubmit={handleMessageSubmit} className="w-full space-y-2">
+        <form onSubmit={handleMessageSubmit} className="flex flex-col w-full space-y-2">
           <Input
-            placeholder="Add context (e.g., ticket ID, user info)"
+            placeholder="Add context (optional, e.g., ticket ID or specific issue)"
             value={context}
-            onChange={handleContextChange}
+            onChange={(e) => setContext(e.target.value)}
+            className="flex-grow"
           />
-          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+          <div className="flex gap-2">
             <Input
-              placeholder="Ask a question..."
+              placeholder="Type your message..."
               value={input}
               onChange={handleInputChange}
               className="flex-grow"
             />
-            <Button type="submit" disabled={isLoading} className="w-full sm:w-auto">
-              {isLoading ? 'Thinking...' : 'Send'}
+            <Button type="submit" disabled={isLoading || !input.trim()}>
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Thinking...
+                </>
+              ) : (
+                "Send"
+              )}
             </Button>
           </div>
         </form>

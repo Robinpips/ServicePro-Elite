@@ -1,57 +1,76 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { DispatchBoard } from '@/components/dispatch-board'
-import { TicketDetails } from '@/components/ticket-details'
-import { ServiceRequestForm } from '@/components/service-request-form'
-import { UserTeamManagement } from '@/components/user-team-management'
-import { KnowledgeBase } from '@/components/knowledge-base'
-import { Analytics } from '@/components/analytics'
-import { AIAssistant } from '@/components/ai-assistant'
+import { useState, useEffect } from "react"
+import { DispatchBoard } from "@/components/dispatch-board"
+import { TicketDetails } from "@/components/ticket-details"
+import { ServiceRequestForm } from "@/components/service-request-form"
+import { UserTeamManagement } from "@/components/user-team-management"
+import { KnowledgeBase } from "@/components/knowledge-base"
+import { Analytics } from "@/components/analytics"
+import { AIAssistant } from "@/components/ai-assistant"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Bell, LogOut, Menu, User, Home, Users, Settings, HelpCircle, PlusCircle, BarChart, Book, Sparkles, Loader2 } from 'lucide-react'
+import {
+  Bell,
+  LogOut,
+  Menu,
+  User,
+  Home,
+  Users,
+  Settings,
+  HelpCircle,
+  PlusCircle,
+  BarChart,
+  Book,
+  Sparkles,
+  Loader2,
+} from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
-import { Settings } from '@/components/settings'
-import { HelpCenter } from '@/components/help-center'
+import { Settings as SettingsPage } from "@/components/settings"
+import { HelpCenter } from "@/components/help-center"
 
 interface Ticket {
-  id: number;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  assignedTo: string;
-  team: string;
-  requester: string;
-  scheduledDate?: Date;
+  id: number
+  title: string
+  description: string
+  status: string
+  priority: string
+  assignedTo: string
+  team: string
+  requester: string
+  scheduledDate?: Date
 }
 
 interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
+  id: number
+  name: string
+  email: string
+  role: string
 }
 
 interface Team {
-  id: number;
-  name: string;
+  id: number
+  name: string
 }
 
 interface Category {
-  id: number;
-  name: string;
+  id: number
+  name: string
 }
 
 export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [activeTab, setActiveTab] = useState('dispatch')
+  const [activeTab, setActiveTab] = useState("dispatch")
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [users, setUsers] = useState<User[]>([])
@@ -61,9 +80,9 @@ export default function DashboardPage() {
   const { toast } = useToast()
 
   const currentUser = {
-    name: 'Admin User',
-    role: 'admin',
-    permissions: ['create_ticket', 'view_ticket', 'edit_ticket'],
+    name: "Admin User",
+    role: "admin",
+    permissions: ["create_ticket", "view_ticket", "edit_ticket"],
     teams: [1, 2, 3],
   }
 
@@ -72,59 +91,59 @@ export default function DashboardPage() {
       setIsLoading(true)
       try {
         const [ticketsRes, usersRes, teamsRes, categoriesRes] = await Promise.all([
-          fetch('/api/tickets'),
-          fetch('/api/users'),
-          fetch('/api/teams'),
-          fetch('/api/categories')
-        ]);
+          fetch("/api/tickets"),
+          fetch("/api/users"),
+          fetch("/api/teams"),
+          fetch("/api/categories"),
+        ])
 
         const results = await Promise.all([
           ticketsRes.json().catch(() => null),
           usersRes.json().catch(() => null),
           teamsRes.json().catch(() => null),
-          categoriesRes.json().catch(() => null)
-        ]);
+          categoriesRes.json().catch(() => null),
+        ])
 
-        const [ticketsData, usersData, teamsData, categoriesData] = results;
+        const [ticketsData, usersData, teamsData, categoriesData] = results
 
-        if (ticketsData) setTickets(ticketsData);
-        if (usersData) setUsers(usersData);
-        if (teamsData) setTeams(teamsData);
-        if (categoriesData) setCategories(categoriesData);
+        if (ticketsData) setTickets(ticketsData)
+        if (usersData) setUsers(usersData)
+        if (teamsData) setTeams(teamsData)
+        if (categoriesData) setCategories(categoriesData)
 
-        const failedRequests = results.filter(r => r === null).length;
+        const failedRequests = results.filter((r) => r === null).length
         if (failedRequests > 0) {
           toast({
             title: "Warning",
             description: `Failed to load some data. ${failedRequests} request(s) failed.`,
             variant: "destructive",
-          });
+          })
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching data:", error)
         toast({
           title: "Error",
-          description: `Failed to load initial data: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          description: `Failed to load initial data: ${error instanceof Error ? error.message : "Unknown error"}`,
           variant: "destructive",
-        });
+        })
       } finally {
         setIsLoading(false)
       }
-    };
+    }
 
-    fetchData();
-  }, [toast]);
+    fetchData()
+  }, [toast])
 
-  const handleNewServiceRequest = async (formData: Omit<Ticket, 'id'>) => {
+  const handleNewServiceRequest = async (formData: Omit<Ticket, "id">) => {
     try {
-      const response = await fetch('/api/tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       })
-      if (!response.ok) throw new Error('Failed to create ticket')
+      if (!response.ok) throw new Error("Failed to create ticket")
       const newTicket: Ticket = await response.json()
-      setTickets(prevTickets => [...prevTickets, newTicket])
+      setTickets((prevTickets) => [...prevTickets, newTicket])
       toast({
         title: "Service Request Created",
         description: "Your service request has been successfully submitted.",
@@ -142,16 +161,14 @@ export default function DashboardPage() {
   const handleUpdateTicket = async (updatedTicket: Ticket) => {
     try {
       const response = await fetch(`/api/tickets/${updatedTicket.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedTicket),
       })
-      if (!response.ok) throw new Error('Failed to update ticket')
+      if (!response.ok) throw new Error("Failed to update ticket")
       const updatedTicketData: Ticket = await response.json()
-      setTickets(prevTickets => 
-        prevTickets.map(ticket => 
-          ticket.id === updatedTicketData.id ? updatedTicketData : ticket
-        )
+      setTickets((prevTickets) =>
+        prevTickets.map((ticket) => (ticket.id === updatedTicketData.id ? updatedTicketData : ticket)),
       )
       toast({
         title: "Ticket Updated",
@@ -169,13 +186,13 @@ export default function DashboardPage() {
   }
 
   const navItems = [
-    { name: 'Dashboard', tab: 'dispatch', icon: Home },
-    { name: 'Users & Teams', tab: 'users', icon: Users },
-    { name: 'Knowledge Base', tab: 'knowledge', icon: Book },
-    { name: 'Analytics', tab: 'analytics', icon: BarChart },
-    { name: 'AI Assistant', tab: 'ai', icon: Sparkles },
-    { name: 'Settings', tab: 'settings', icon: Settings },
-    { name: 'Help', tab: 'help', icon: HelpCircle },
+    { name: "Dashboard", tab: "dispatch", icon: Home },
+    { name: "Users & Teams", tab: "users", icon: Users },
+    { name: "Knowledge Base", tab: "knowledge", icon: Book },
+    { name: "Analytics", tab: "analytics", icon: BarChart },
+    { name: "AI Assistant", tab: "ai", icon: Sparkles },
+    { name: "Settings", tab: "settings", icon: Settings },
+    { name: "Help", tab: "help", icon: HelpCircle },
   ]
 
   const Sidebar = ({ className = "" }) => (
@@ -188,7 +205,7 @@ export default function DashboardPage() {
           {navItems.map((item) => (
             <li key={item.tab}>
               <Button
-                variant={activeTab === item.tab ? 'default' : 'ghost'}
+                variant={activeTab === item.tab ? "default" : "ghost"}
                 className="w-full justify-start"
                 onClick={() => {
                   setActiveTab(item.tab)
@@ -261,7 +278,7 @@ export default function DashboardPage() {
                     <DialogTitle>Create New Service Request</DialogTitle>
                     <DialogDescription>Fill out the form to create a new service request.</DialogDescription>
                   </DialogHeader>
-                  <ServiceRequestForm 
+                  <ServiceRequestForm
                     onSubmit={handleNewServiceRequest}
                     teams={teams}
                     users={users}
@@ -283,21 +300,17 @@ export default function DashboardPage() {
         <main className="flex-grow p-4 md:p-6 overflow-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsContent value="dispatch">
-              <DispatchBoard 
-                tickets={tickets} 
-                onSelectTicket={setSelectedTicket}
-                isLoading={isLoading}
-              />
+              <DispatchBoard tickets={tickets} onSelectTicket={setSelectedTicket} isLoading={isLoading} />
             </TabsContent>
             <TabsContent value="users">
-              <UserTeamManagement 
-                users={users} 
-                teams={teams} 
+              <UserTeamManagement
+                users={users}
+                teams={teams}
                 onUpdateUser={(updatedUser) => {
-                  setUsers(prevUsers => prevUsers.map(user => user.id === updatedUser.id ? updatedUser : user))
+                  setUsers((prevUsers) => prevUsers.map((user) => (user.id === updatedUser.id ? updatedUser : user)))
                 }}
                 onUpdateTeam={(updatedTeam) => {
-                  setTeams(prevTeams => prevTeams.map(team => team.id === updatedTeam.id ? updatedTeam : team))
+                  setTeams((prevTeams) => prevTeams.map((team) => (team.id === updatedTeam.id ? updatedTeam : team)))
                 }}
               />
             </TabsContent>
@@ -311,7 +324,7 @@ export default function DashboardPage() {
               <AIAssistant />
             </TabsContent>
             <TabsContent value="settings">
-              <Settings />
+              <SettingsPage />
             </TabsContent>
             <TabsContent value="help">
               <HelpCenter />
@@ -324,9 +337,9 @@ export default function DashboardPage() {
       <Sheet open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
         <SheetContent side="right" className="w-[400px] sm:w-[540px]">
           {selectedTicket && (
-            <TicketDetails 
-              ticket={selectedTicket} 
-              onClose={() => setSelectedTicket(null)} 
+            <TicketDetails
+              ticket={selectedTicket}
+              onClose={() => setSelectedTicket(null)}
               onSave={handleUpdateTicket}
             />
           )}
