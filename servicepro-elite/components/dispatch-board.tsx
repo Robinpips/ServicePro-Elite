@@ -1,26 +1,12 @@
 "use client"
 
-import { DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-
 import type React from "react"
-
-import { useState, useRef, useEffect } from "react"
+import { useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from "@/components/ui/dropdown-menu"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -28,34 +14,27 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Loader2,
-  Bell,
-  MoreVertical,
-  Mail,
-  MessageSquare,
-  Phone,
   Search,
   Filter,
-  Trash2,
-  MoveRight,
-  RefreshCcw,
-  Folders,
-  Globe,
-  Layout,
-  FileCode,
-  Database,
-  FileText,
-  Settings,
-  Plus,
-  FolderPlus,
-  FilePlus,
   ChevronRight,
+  MoreVertical,
+  Folder,
+  FileText,
+  Briefcase,
+  BarChart2,
+  Settings,
+  Users,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -71,38 +50,46 @@ interface Ticket {
   createdAt: string
   updatedAt: string
   description: string
-  notifications?: {
-    email?: boolean
-    sms?: boolean
-    chat?: boolean
-  }
 }
 
-// Update the Folder interface to support hierarchy
-interface Folder {
+// Update the FolderType to be more specific
+type FolderType = "folder" | "project" | "task"
+
+interface FolderBase {
   id: string
   name: string
-  icon: any
+  type: FolderType
+  parentId?: string | null
+  children: string[]
+  tickets: number[]
+  icon?: React.ElementType
   color?: string
   expanded?: boolean
-  parentId?: string | null
-  type: "folder" | "project" | "task"
-  children: string[] // IDs of child folders/tasks
-  tickets: number[]
-  properties?: {
-    workflow?: string
-    routing?: string[]
-    notifications?: {
-      email?: boolean
-      sms?: boolean
-      chat?: boolean
-    }
-    priority?: string
-    startDate?: string
-    dueDate?: string
-    dependencies?: string[] // IDs of dependent tasks
-  }
 }
+
+interface Project extends FolderBase {
+  type: "project"
+  startDate?: string
+  endDate?: string
+  status: "not-started" | "in-progress" | "completed"
+  owner?: string
+  priority: "low" | "medium" | "high"
+}
+
+interface Task extends FolderBase {
+  type: "task"
+  dueDate?: string
+  assignee?: string
+  status: "todo" | "in-progress" | "done"
+  priority: "low" | "medium" | "high"
+  dependencies?: string[]
+}
+
+interface Folder extends FolderBase {
+  type: "folder"
+}
+
+type FolderItem = Folder | Project | Task
 
 interface DispatchBoardProps {
   tickets: Ticket[]
@@ -110,142 +97,208 @@ interface DispatchBoardProps {
   isLoading: boolean
 }
 
-// Add sample hierarchical folders
-const defaultFolders: Folder[] = [
+// Default folders with improved structure
+const defaultFolders: FolderItem[] = [
   {
     id: "projects",
     name: "Projects",
-    icon: Folders,
     type: "folder",
     children: ["website-project", "erp-implementation"],
     tickets: [],
+    icon: Briefcase,
   },
   {
     id: "website-project",
-    name: "New Website Project",
-    icon: Globe,
-    parentId: "projects",
+    name: "Website Redesign",
     type: "project",
-    children: ["frontend-tasks", "backend-tasks", "content-tasks"],
+    parentId: "projects",
+    children: ["frontend-tasks", "backend-tasks"],
     tickets: [],
-    properties: {
-      workflow: "web-development",
-      priority: "high",
-      startDate: "2024-02-01",
-      dueDate: "2024-05-01",
-    },
+    status: "in-progress",
+    priority: "high",
+    startDate: "2024-02-01",
+    endDate: "2024-05-01",
+    owner: "John Doe",
   },
   {
     id: "frontend-tasks",
     name: "Frontend Development",
-    icon: Layout,
-    parentId: "website-project",
     type: "folder",
-    children: ["homepage", "about-page", "contact-page"],
+    parentId: "website-project",
+    children: ["homepage-task", "about-page-task"],
     tickets: [],
   },
   {
-    id: "homepage",
+    id: "homepage-task",
     name: "Homepage Development",
-    icon: FileCode,
-    parentId: "frontend-tasks",
     type: "task",
-    children: [],
-    tickets: [1, 2], // Assign some ticket IDs
-    properties: {
-      workflow: "frontend-dev",
-      priority: "high",
-      startDate: "2024-02-01",
-      dueDate: "2024-03-01",
-      dependencies: ["design-approval"],
-    },
-  },
-  {
-    id: "about-page",
-    name: "About Page Development",
-    icon: FileCode,
     parentId: "frontend-tasks",
-    type: "task",
     children: [],
-    tickets: [3], // Assign a ticket ID
-    properties: {
-      workflow: "frontend-dev",
-      priority: "medium",
-      startDate: "2024-02-15",
-      dueDate: "2024-03-15",
-    },
-  },
-  {
-    id: "backend-tasks",
-    name: "Backend Development",
-    icon: Database,
-    parentId: "website-project",
-    type: "folder",
-    children: ["api-development", "database-setup"],
-    tickets: [],
-  },
-  {
-    id: "content-tasks",
-    name: "Content Management",
-    icon: FileText,
-    parentId: "website-project",
-    type: "folder",
-    children: ["content-creation", "content-review"],
-    tickets: [],
-  },
-  {
-    id: "erp-implementation",
-    name: "ERP Implementation",
-    icon: Settings,
-    parentId: "projects",
-    type: "project",
-    children: ["requirements", "configuration", "training"],
-    tickets: [],
-    properties: {
-      workflow: "erp-implementation",
-      priority: "high",
-      startDate: "2024-03-01",
-      dueDate: "2024-08-01",
-    },
+    tickets: [1, 2],
+    status: "in-progress",
+    priority: "high",
+    dueDate: "2024-03-01",
+    assignee: "Jane Smith",
   },
 ]
 
 export function DispatchBoard({ tickets, onSelectTicket, isLoading }: DispatchBoardProps) {
-  const [folders, setFolders] = useState<Folder[]>(defaultFolders)
-  const [selectedFolder, setSelectedFolder] = useState("projects") // Start with projects folder
-  const [selectedTickets, setSelectedTickets] = useState<number[]>([])
+  const [folders, setFolders] = useState<FolderItem[]>(defaultFolders)
+  const [selectedFolder, setSelectedFolder] = useState<string | null>("projects")
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["projects"]))
+  const [newItemData, setNewItemData] = useState({
+    name: "",
+    type: "folder" as FolderType,
+    description: "",
+    dueDate: "",
+    assignee: "",
+    priority: "medium" as "low" | "medium" | "high",
+  })
   const [searchQuery, setSearchQuery] = useState("")
-  const [notificationMessage, setNotificationMessage] = useState("")
-  const [showPreview, setShowPreview] = useState(false)
-  const [previewTicket, setPreviewTicket] = useState<Ticket | null>(null)
+  const [showNewItemDialog, setShowNewItemDialog] = useState(false)
+  const [newItemType, setNewItemType] = useState<FolderType>("folder")
   const { toast } = useToast()
-  const tableRef = useRef<HTMLDivElement>(null)
 
-  // Add these state declarations after the existing ones
-  const [activeFolder, setActiveFolder] = useState<Folder>(folders[0])
-  const [folderCounts, setFolderCounts] = useState<Record<string, number>>({})
-  const [expandedFolders, setExpandedFolders] = useState<string[]>(["projects"]) // Start with projects expanded
+  const handleFolderClick = (folderId: string) => {
+    setSelectedFolder(folderId)
+    setExpandedFolders((prev) => {
+      const next = new Set(prev)
+      if (next.has(folderId)) {
+        next.delete(folderId)
+      } else {
+        next.add(folderId)
+      }
+      return next
+    })
+  }
 
-  const getStatusColor = (status: string | undefined) => {
-    if (!status) return "bg-gray-500"
+  const handleCreateNewItem = () => {
+    if (!newItemData.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Name is required",
+        variant: "destructive",
+      })
+      return
+    }
 
+    const newId = `${newItemType}-${Date.now()}`
+    const parentId = selectedFolder
+
+    let newItem: FolderItem
+
+    switch (newItemType) {
+      case "project":
+        newItem = {
+          id: newId,
+          name: newItemData.name,
+          type: "project",
+          parentId,
+          children: [],
+          tickets: [],
+          status: "not-started",
+          priority: newItemData.priority as "low" | "medium" | "high",
+          startDate: new Date().toISOString(),
+          endDate: newItemData.dueDate,
+          owner: newItemData.assignee || undefined,
+        } as Project
+        break
+
+      case "task":
+        newItem = {
+          id: newId,
+          name: newItemData.name,
+          type: "task",
+          parentId,
+          children: [],
+          tickets: [],
+          status: "todo",
+          priority: newItemData.priority as "low" | "medium" | "high",
+          dueDate: newItemData.dueDate,
+          assignee: newItemData.assignee || undefined,
+        } as Task
+        break
+
+      default:
+        newItem = {
+          id: newId,
+          name: newItemData.name,
+          type: "folder",
+          parentId,
+          children: [],
+          tickets: [],
+        } as Folder
+    }
+
+    // Add this right before the setFolders call
+    console.log("Creating new item:", {
+      newItem,
+      parentId,
+      currentFolders: folders,
+    })
+
+    // Update the folders state
+    setFolders((prev) => {
+      // First, create a new array with the new item
+      const updated = [...prev, newItem]
+
+      // Then, if there's a parent folder, update its children
+      if (parentId) {
+        return updated.map((folder) => {
+          if (folder.id === parentId) {
+            return {
+              ...folder,
+              children: [...folder.children, newId],
+            }
+          }
+          return folder
+        })
+      }
+
+      return updated
+    })
+
+    // Add this after the setFolders call
+    console.log("Updated folders:", folders)
+
+    // Expand the parent folder if it exists
+    if (parentId) {
+      setExpandedFolders((prev) => new Set([...prev, parentId]))
+    }
+
+    // Reset form and close dialog
+    setShowNewItemDialog(false)
+    setNewItemData({
+      name: "",
+      type: "folder",
+      description: "",
+      dueDate: "",
+      assignee: "",
+      priority: "medium",
+    })
+
+    toast({
+      title: "Success",
+      description: `New ${newItemType} created successfully`,
+    })
+  }
+
+  const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
-      case "open":
-        return "bg-green-500"
-      case "in progress":
-        return "bg-yellow-500"
-      case "resolved":
+      case "in-progress":
         return "bg-blue-500"
-      case "closed":
-        return "bg-gray-500"
+      case "completed":
+      case "done":
+        return "bg-green-500"
+      case "not-started":
+      case "todo":
+        return "bg-yellow-500"
       default:
         return "bg-gray-500"
     }
   }
 
-  const getPriorityColor = (priority: string | undefined) => {
-    if (!priority) return "bg-gray-500"
-
+  const getPriorityColor = (priority: string) => {
     switch (priority.toLowerCase()) {
       case "high":
         return "bg-red-500"
@@ -258,504 +311,363 @@ export function DispatchBoard({ tickets, onSelectTicket, isLoading }: DispatchBo
     }
   }
 
-  const sendNotification = (ticketIds: number[], type: "email" | "sms" | "chat") => {
-    if (!notificationMessage.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a notification message",
-        variant: "destructive",
-      })
-      return
+  const renderFolderIcon = (type: FolderType) => {
+    switch (type) {
+      case "project":
+        return <Briefcase className="h-4 w-4" />
+      case "task":
+        return <FileText className="h-4 w-4" />
+      default:
+        return <Folder className="h-4 w-4" />
     }
-
-    toast({
-      title: "Notification sent",
-      description: `${type.toUpperCase()} notification sent to ${ticketIds.length} recipient(s)`,
-    })
-    setNotificationMessage("")
-    setSelectedTickets([])
   }
 
-  const toggleTicketSelection = (ticketId: number) => {
-    setSelectedTickets((prev) => (prev.includes(ticketId) ? prev.filter((id) => id !== ticketId) : [...prev, ticketId]))
-  }
+  const renderFolderTree = (parentId: string | null = null, level = 0) => {
+    return folders
+      .filter((folder) => folder.parentId === parentId)
+      .map((folder) => {
+        const isExpanded = expandedFolders.has(folder.id)
+        const isSelected = selectedFolder === folder.id
+        const hasChildren = folder.children.length > 0
+        const Icon = folder.icon || renderFolderIcon(folder.type)
 
-  const handleTicketClick = (ticket: Ticket) => {
-    setPreviewTicket(ticket)
-    setShowPreview(true)
+        return (
+          <div key={folder.id} className="space-y-1">
+            <Button
+              variant={isSelected ? "secondary" : "ghost"}
+              className={cn("w-full justify-start", level > 0 && `pl-${level * 4}`, isSelected && "bg-accent")}
+              onClick={() => handleFolderClick(folder.id)}
+            >
+              <div className="flex items-center flex-1">
+                {hasChildren && (
+                  <ChevronRight
+                    className={cn("h-4 w-4 mr-2 transition-transform", isExpanded && "transform rotate-90")}
+                  />
+                )}
+                {!hasChildren && <div className="w-6" />}
+                <Icon className="mr-2 h-4 w-4" />
+                <span className="flex-1 truncate">{folder.name}</span>
+                {folder.type !== "folder" && (
+                  <div className="flex items-center space-x-2">
+                    {"status" in folder && <Badge className={getStatusColor(folder.status)}>{folder.status}</Badge>}
+                    {"priority" in folder && (
+                      <Badge className={getPriorityColor(folder.priority)}>{folder.priority}</Badge>
+                    )}
+                  </div>
+                )}
+                {folder.tickets.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {folder.tickets.length}
+                  </Badge>
+                )}
+              </div>
+            </Button>
+            {isExpanded && hasChildren && (
+              <div className="ml-4 border-l pl-4">{renderFolderTree(folder.id, level + 1)}</div>
+            )}
+          </div>
+        )
+      })
   }
 
   const filteredTickets = tickets.filter((ticket) => {
-    // First check if ticket matches search query
     const matchesSearch =
       searchQuery.toLowerCase().trim() === "" ||
       ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ticket.description.toLowerCase().includes(searchQuery.toLowerCase())
+      ticket.description?.toLowerCase().includes(searchQuery.toLowerCase())
 
-    // Then check if ticket belongs to selected folder or its children
-    const selectedFolderObj = folders.find((f) => f.id === selectedFolder)
-    if (!selectedFolderObj) return false
-
-    const getAllChildFolderIds = (folderId: string): string[] => {
-      const folder = folders.find((f) => f.id === folderId)
-      if (!folder) return []
-      return [folderId, ...folder.children.flatMap((childId) => getAllChildFolderIds(childId))]
-    }
-
-    const relevantFolderIds = getAllChildFolderIds(selectedFolder)
-    const belongsToFolder = relevantFolderIds.includes(ticket.folderId || "")
+    const belongsToFolder = !selectedFolder || ticket.folderId === selectedFolder
 
     return matchesSearch && belongsToFolder
   })
 
-  const refreshData = () => {
-    toast({
-      title: "Refreshing data",
-      description: "Updating ticket information...",
-    })
-    // Implement actual refresh logic here
-  }
-
-  // Add these handler functions before the return statement
-  const handleFolderClick = (folder: Folder) => {
-    setSelectedFolder(folder.id)
-    setActiveFolder(folder)
-    setSelectedTickets([])
-
-    // Toggle folder expansion only if the folder has children
-    if (folder.children.length > 0) {
-      setExpandedFolders((prev) =>
-        prev.includes(folder.id) ? prev.filter((id) => id !== folder.id) : [...prev, folder.id],
-      )
-    }
-
-    // Update the ticket list to show tickets for this folder
-    const ticketsInFolder = tickets.filter((t) => t.folderId === folder.id)
-    console.log(`Showing ${ticketsInFolder.length} tickets for folder ${folder.name}`)
-  }
-
-  const handleAddFolder = (type: "project" | "folder" | "task") => {
-    // Implementation for adding new folders/projects/tasks
-    toast({
-      title: `New ${type} created`,
-      description: `The ${type} has been created successfully.`,
-    })
-  }
-
-  const handleMoveToFolder = (ticketIds: number[], folderId: string) => {
-    // Update tickets with new folder
-    const updatedTickets = tickets.map((ticket) => (ticketIds.includes(ticket.id) ? { ...ticket, folderId } : ticket))
-
-    // Update folder counts
-    const newCounts = folders.reduce(
-      (acc, folder) => ({
-        ...acc,
-        [folder.id]: updatedTickets.filter((t) => t.folderId === folder.id).length,
-      }),
-      {},
-    )
-
-    setFolderCounts(newCounts)
-    setSelectedTickets([])
-
-    toast({
-      title: "Tickets moved",
-      description: `${ticketIds.length} ticket(s) moved to ${folders.find((f) => f.id === folderId)?.name}`,
-    })
-  }
-
-  const handleDeleteTickets = (ticketIds: number[]) => {
-    // Here you would typically call an API to delete the tickets
-    toast({
-      title: "Tickets deleted",
-      description: `${ticketIds.length} ticket(s) deleted`,
-    })
-    setSelectedTickets([])
-  }
-
-  const handleRowClick = (e: React.MouseEvent, ticket: Ticket) => {
-    // Only trigger if the click wasn't on a button or checkbox
-    if (!(e.target as HTMLElement).closest('button, input[type="checkbox"]')) {
-      handleTicketClick(ticket)
-    }
-  }
-
-  useEffect(() => {
-    const counts = folders.reduce(
-      (acc, folder) => ({
-        ...acc,
-        [folder.id]: tickets.filter((t) => t.folderId === folder.id).length,
-      }),
-      {},
-    )
-    setFolderCounts(counts)
-  }, [tickets, folders])
-
-  useEffect(() => {
-    console.log("Selected folder:", selectedFolder)
-    console.log("Active folder:", activeFolder)
-    console.log("Expanded folders:", expandedFolders)
-    console.log("Filtered tickets:", filteredTickets)
-  }, [selectedFolder, activeFolder, expandedFolders, filteredTickets])
-
-  const renderFolderTree = (folders: Folder[], parentId: string | null) => {
-    return folders
-      .filter((folder) => folder.parentId === parentId)
-      .map((folder) => (
-        <div key={folder.id} className="space-y-1">
-          <Button
-            variant={selectedFolder === folder.id ? "secondary" : "ghost"}
-            className={cn(
-              "w-full justify-start",
-              folder.parentId && "pl-8",
-              selectedFolder === folder.id && "bg-accent",
-            )}
-            onClick={() => handleFolderClick(folder)}
-          >
-            <ChevronRight
-              className={cn(
-                "h-4 w-4 mr-2 transition-transform",
-                expandedFolders.includes(folder.id) && "transform rotate-90",
-              )}
-            />
-            <folder.icon className="mr-2 h-4 w-4" style={{ color: folder.color }} />
-            <span className="flex-1 text-left truncate">{folder.name}</span>
-            {folder.tickets.length > 0 && (
-              <Badge variant="secondary" className="ml-auto">
-                {folder.tickets.length}
-              </Badge>
-            )}
-          </Button>
-          {expandedFolders.includes(folder.id) && folder.children.length > 0 && (
-            <div className="ml-4 border-l pl-4">{renderFolderTree(folders, folder.id)}</div>
-          )}
-        </div>
-      ))
-  }
-
   return (
-    <div className="flex h-[calc(100vh-10rem)] overflow-hidden rounded-lg border">
-      {/* Left Sidebar - Project Folders */}
-      <div className="w-72 border-r bg-muted/50">
-        <div className="p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-sm">PROJECTS & TASKS</h3>
-            <div className="flex gap-2">
-              <Button variant="ghost" size="icon" onClick={refreshData}>
-                <RefreshCcw className="h-4 w-4" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => handleAddFolder("project")}>
-                    <FolderPlus className="h-4 w-4 mr-2" />
-                    New Project
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddFolder("folder")}>
-                    <FolderPlus className="h-4 w-4 mr-2" />
-                    New Folder
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddFolder("task")}>
-                    <FilePlus className="h-4 w-4 mr-2" />
-                    New Task
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+    <div className="flex h-[calc(100vh-10rem)] overflow-hidden rounded-lg border bg-white">
+      {/* Left Sidebar - Project Tree */}
+      <div className="w-72 border-r bg-[#f8f9fc]">
+        <div className="flex flex-col h-full">
+          <div className="p-4 border-b bg-white">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search..." className="pl-8" />
             </div>
           </div>
-
-          <ScrollArea className="h-[calc(100vh-12rem)]">
-            <div className="space-y-1">{renderFolderTree(folders, null)}</div>
-          </ScrollArea>
+          <Tabs defaultValue="workflow" className="flex-1">
+            <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0">
+              <TabsTrigger
+                value="workflow"
+                className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-blue-600 data-[state=active]:bg-transparent"
+              >
+                Workflow
+              </TabsTrigger>
+              <TabsTrigger
+                value="catalog"
+                className="rounded-none border-b-2 border-transparent px-4 py-3 data-[state=active]:border-blue-600 data-[state=active]:bg-transparent"
+              >
+                Catalog
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="workflow" className="flex-1 p-0">
+              <div className="space-y-1 p-2 overflow-auto h-[calc(100vh-16rem)]">{renderFolderTree(null)}</div>
+            </TabsContent>
+            <TabsContent value="catalog" className="flex-1 p-4 overflow-auto">
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader className="p-4">
+                    <CardTitle className="text-sm font-medium">Service Categories</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="space-y-1">
+                      {["IT Support", "Hardware", "Software", "Network", "Security"].map((category) => (
+                        <Button
+                          key={category}
+                          variant="ghost"
+                          className="w-full justify-start rounded-none px-4 py-2 font-normal"
+                        >
+                          {category}
+                        </Button>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Toolbar */}
-        <div className="border-b p-4 bg-muted/50">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1 flex items-center gap-4">
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search tickets..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
-                />
+      <div className="flex-1 flex flex-col bg-[#f8f9fc]">
+        {/* Dashboard Overview */}
+        <div className="grid grid-cols-4 gap-4 p-4">
+          <Card>
+            <CardContent className="p-4 flex items-center space-x-4">
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Clock className="h-5 w-5 text-blue-600" />
               </div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon">
-                      <Filter className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Filter tickets</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Open Tickets</p>
+                <h3 className="text-2xl font-bold">{tickets.filter((t) => t.status === "open").length}</h3>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center space-x-4">
+              <div className="p-3 bg-yellow-100 rounded-full">
+                <AlertCircle className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">High Priority</p>
+                <h3 className="text-2xl font-bold">{tickets.filter((t) => t.priority === "high").length}</h3>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center space-x-4">
+              <div className="p-3 bg-green-100 rounded-full">
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Resolved Today</p>
+                <h3 className="text-2xl font-bold">12</h3>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center space-x-4">
+              <div className="p-3 bg-purple-100 rounded-full">
+                <Users className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Active Agents</p>
+                <h3 className="text-2xl font-bold">8</h3>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Toolbar */}
+        <div className="border-y bg-white p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 mr-2" />
+                Filter
+              </Button>
+              <Button variant="outline" size="sm">
+                <Settings className="h-4 w-4 mr-2" />
+                Customize
+              </Button>
             </div>
-            <div className="flex items-center gap-2">
-              {selectedTickets.length > 0 && (
-                <>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Bell className="h-4 w-4 mr-2" />
-                        Notify
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Send Notification</DialogTitle>
-                        <DialogDescription>Send a notification to the selected ticket owners.</DialogDescription>
-                      </DialogHeader>
-                      <div className="grid gap-4 py-4">
-                        <div className="grid gap-2">
-                          <Label>Message</Label>
-                          <Textarea
-                            placeholder="Enter your notification message..."
-                            value={notificationMessage}
-                            onChange={(e) => setNotificationMessage(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter className="flex-col sm:flex-row gap-2">
-                        <Button variant="outline" onClick={() => sendNotification(selectedTickets, "email")}>
-                          <Mail className="h-4 w-4 mr-2" />
-                          Send Email
-                        </Button>
-                        <Button variant="outline" onClick={() => sendNotification(selectedTickets, "sms")}>
-                          <Phone className="h-4 w-4 mr-2" />
-                          Send SMS
-                        </Button>
-                        <Button onClick={() => sendNotification(selectedTickets, "chat")}>
-                          <MessageSquare className="h-4 w-4 mr-2" />
-                          Send Chat
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <MoveRight className="h-4 w-4 mr-2" />
-                        Move To
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      {folders.map((folder) => {
-                        const Icon = folder.icon
-                        return (
-                          <DropdownMenuItem
-                            key={folder.id}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleMoveToFolder(selectedTickets, folder.id)
-                            }}
-                          >
-                            <Icon className="h-4 w-4 mr-2" />
-                            {folder.name}
-                          </DropdownMenuItem>
-                        )
-                      })}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </>
-              )}
+            <div className="flex items-center space-x-4">
+              <Button variant="outline" size="sm">
+                <BarChart2 className="h-4 w-4 mr-2" />
+                Reports
+              </Button>
+              <Button className="bg-blue-600 hover:bg-blue-700" size="sm">
+                Create Ticket
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Ticket List */}
-        <div className="flex-1 flex">
-          <div className="flex-1 overflow-hidden" ref={tableRef}>
-            <ScrollArea className="h-full">
-              {isLoading ? (
-                <div className="flex justify-center items-center h-32">
-                  <Loader2 className="h-8 w-8 animate-spin" />
-                </div>
-              ) : filteredTickets.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[30px]">
-                        <input
-                          type="checkbox"
-                          className="rounded border-gray-300"
-                          checked={selectedTickets.length === filteredTickets.length}
-                          onChange={() => {
-                            if (selectedTickets.length === filteredTickets.length) {
-                              setSelectedTickets([])
-                            } else {
-                              setSelectedTickets(filteredTickets.map((t) => t.id))
-                            }
-                          }}
-                        />
-                      </TableHead>
-                      <TableHead className="w-[60px]">ID</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead className="w-[100px]">Status</TableHead>
-                      <TableHead className="w-[100px]">Priority</TableHead>
-                      <TableHead className="w-[150px]">Assigned To</TableHead>
-                      <TableHead className="w-[120px]">Due Date</TableHead>
-                      <TableHead className="w-[100px]">Actions</TableHead>
+        <div className="flex-1 overflow-auto p-4">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="font-semibold">ID</TableHead>
+                    <TableHead className="font-semibold">Title</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Priority</TableHead>
+                    <TableHead className="font-semibold">Assigned To</TableHead>
+                    <TableHead className="font-semibold">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTickets.map((ticket) => (
+                    <TableRow key={ticket.id} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">#{ticket.id}</TableCell>
+                      <TableCell>{ticket.title}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            "bg-opacity-10 text-xs",
+                            ticket.status === "open" && "bg-blue-500 text-blue-700",
+                            ticket.status === "in-progress" && "bg-yellow-500 text-yellow-700",
+                            ticket.status === "closed" && "bg-green-500 text-green-700",
+                          )}
+                        >
+                          {ticket.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            "bg-opacity-10 text-xs",
+                            ticket.priority === "high" && "bg-red-500 text-red-700",
+                            ticket.priority === "medium" && "bg-yellow-500 text-yellow-700",
+                            ticket.priority === "low" && "bg-green-500 text-green-700",
+                          )}
+                        >
+                          {ticket.priority}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{ticket.assignedTo}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => onSelectTicket(ticket)}>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredTickets.map((ticket) => (
-                      <TableRow
-                        key={ticket.id}
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={(e) => handleRowClick(e, ticket)}
-                      >
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={selectedTickets.includes(ticket.id)}
-                            onChange={() => toggleTicketSelection(ticket.id)}
-                            className="rounded border-gray-300"
-                          />
-                        </TableCell>
-                        <TableCell>#{ticket.id}</TableCell>
-                        <TableCell className="font-medium">{ticket.title}</TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(ticket.status)}>{ticket.status || "Unknown"}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getPriorityColor(ticket.priority)}>{ticket.priority || "Unknown"}</Badge>
-                        </TableCell>
-                        <TableCell>{ticket.assignedTo || "Unassigned"}</TableCell>
-                        <TableCell>{ticket.dueDate || "No date"}</TableCell>
-                        <TableCell onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-[160px]">
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  onSelectTicket(ticket)
-                                }}
-                              >
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  onSelectTicket(ticket)
-                                }}
-                              >
-                                Edit Ticket
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Assign To</DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuLabel>Move to</DropdownMenuLabel>
-                              {folders.map((folder) => {
-                                const Icon = folder.icon
-                                return (
-                                  <DropdownMenuItem
-                                    key={folder.id}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleMoveToFolder([ticket.id], folder.id)
-                                    }}
-                                  >
-                                    <Icon className="h-4 w-4 mr-2" />
-                                    {folder.name}
-                                  </DropdownMenuItem>
-                                )
-                              })}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-red-600"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleDeleteTickets([ticket.id])
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-4">
-                  <p>No tickets available.</p>
-                </div>
-              )}
-              {filteredTickets.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">
-                    {searchQuery
-                      ? "No tickets match your search"
-                      : `No tickets in ${activeFolder?.name || "selected folder"}`}
-                  </p>
-                </div>
-              )}
-            </ScrollArea>
-          </div>
-
-          {/* Preview Pane */}
-          <Sheet open={showPreview} onOpenChange={setShowPreview}>
-            <SheetContent side="right" className="w-[400px] sm:w-[540px] p-0">
-              {previewTicket && (
-                <Card className="h-full rounded-none border-0">
-                  <CardContent className="p-6">
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <h2 className="text-2xl font-bold">
-                          #{previewTicket.id} {previewTicket.title}
-                        </h2>
-                        <div className="flex items-center space-x-4">
-                          <Badge className={getStatusColor(previewTicket.status)}>{previewTicket.status}</Badge>
-                          <Badge className={getPriorityColor(previewTicket.priority)}>{previewTicket.priority}</Badge>
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Assigned To</Label>
-                          <p className="text-sm">{previewTicket.assignedTo || "Unassigned"}</p>
-                        </div>
-                        <div>
-                          <Label>Due Date</Label>
-                          <p className="text-sm">{previewTicket.dueDate || "No date set"}</p>
-                        </div>
-                        <div>
-                          <Label>Description</Label>
-                          <p className="text-sm whitespace-pre-wrap">{previewTicket.description}</p>
-                        </div>
-                      </div>
-                      <Separator />
-                      <div className="space-y-2">
-                        <Label>Activity</Label>
-                        <div className="text-sm text-muted-foreground">
-                          <p>Created: {previewTicket.createdAt}</p>
-                          <p>Last Updated: {previewTicket.updatedAt}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </SheetContent>
-          </Sheet>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
         </div>
       </div>
+
+      {/* New Item Dialog */}
+      <Dialog open={showNewItemDialog} onOpenChange={setShowNewItemDialog}>
+        <DialogContent>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              handleCreateNewItem()
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>Create New {newItemType}</DialogTitle>
+              <DialogDescription>Fill in the details to create a new {newItemType}.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  value={newItemData.name}
+                  onChange={(e) => setNewItemData((prev) => ({ ...prev, name: e.target.value }))}
+                  required
+                />
+              </div>
+              {(newItemType === "project" || newItemType === "task") && (
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={newItemData.description}
+                      onChange={(e) =>
+                        setNewItemData((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="dueDate">Due Date</Label>
+                    <Input
+                      id="dueDate"
+                      type="date"
+                      value={newItemData.dueDate}
+                      onChange={(e) => setNewItemData((prev) => ({ ...prev, dueDate: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="priority">Priority</Label>
+                    <Select
+                      value={newItemData.priority}
+                      onValueChange={(value: "low" | "medium" | "high") =>
+                        setNewItemData((prev) => ({ ...prev, priority: value }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {newItemType === "task" && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="assignee">Assignee</Label>
+                      <Input
+                        id="assignee"
+                        value={newItemData.assignee}
+                        onChange={(e) =>
+                          setNewItemData((prev) => ({
+                            ...prev,
+                            assignee: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowNewItemDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Create {newItemType}</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

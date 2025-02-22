@@ -1,37 +1,27 @@
-import { NextResponse } from 'next/server';
-
-interface Team {
-  id: number;
-  name: string;
-}
+import { NextResponse } from "next/server"
+import type { Team } from "@/types"
 
 const teams: Team[] = [
-  { id: 1, name: 'IT Support' },
-  { id: 2, name: 'Customer Service' },
-];
+  {
+    id: 1,
+    name: "IT Support",
+    members: [1, 2],
+  },
+  {
+    id: 2,
+    name: "Customer Service",
+    members: [2],
+  },
+]
 
 export async function GET() {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return NextResponse.json(teams);
-}
-
-export async function POST(req: Request) {
-  const newTeam: Omit<Team, 'id'> = await req.json();
-  const team: Team = {
-    ...newTeam,
-    id: teams.length + 1
-  };
-  teams.push(team);
-  return NextResponse.json(team);
-}
-
-export async function PUT(req: Request) {
-  const updatedTeam: Team = await req.json();
-  const index = teams.findIndex(t => t.id === updatedTeam.id);
-  if (index !== -1) {
-    teams[index] = updatedTeam;
-    return NextResponse.json(updatedTeam);
+  try {
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    return NextResponse.json(teams)
+  } catch (error) {
+    console.error("Error fetching teams:", error)
+    return NextResponse.json({ error: "Failed to fetch teams" }, { status: 500 })
   }
-  return NextResponse.json({ error: 'Team not found' }, { status: 404 });
 }
 

@@ -38,35 +38,8 @@ import { useToast } from "@/components/ui/use-toast"
 import { Toaster } from "@/components/ui/toaster"
 import { Settings as SettingsPage } from "@/components/settings"
 import { HelpCenter } from "@/components/help-center"
-
-interface Ticket {
-  id: number
-  title: string
-  description: string
-  status: string
-  priority: string
-  assignedTo: string
-  team: string
-  requester: string
-  scheduledDate?: Date
-}
-
-interface User {
-  id: number
-  name: string
-  email: string
-  role: string
-}
-
-interface Team {
-  id: number
-  name: string
-}
-
-interface Category {
-  id: number
-  name: string
-}
+import type { Ticket, User, Team, Category } from "@/types"
+import { fetchTickets, fetchUsers, fetchTeams, fetchCategories, createTicket, updateTicket } from "@/lib/api"
 
 export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -90,32 +63,61 @@ export default function DashboardPage() {
     const fetchData = async () => {
       setIsLoading(true)
       try {
-        const [ticketsRes, usersRes, teamsRes, categoriesRes] = await Promise.all([
-          fetch("/api/tickets"),
-          fetch("/api/users"),
-          fetch("/api/teams"),
-          fetch("/api/categories"),
-        ])
+        const results = await Promise.allSettled([fetchTickets(), fetchUsers(), fetchTeams(), fetchCategories()])
 
-        const results = await Promise.all([
-          ticketsRes.json().catch(() => null),
-          usersRes.json().catch(() => null),
-          teamsRes.json().catch(() => null),
-          categoriesRes.json().catch(() => null),
-        ])
+        // Process results and handle individual failures
+        const [ticketsResult, usersResult, teamsResult, categoriesResult] = results
 
-        const [ticketsData, usersData, teamsData, categoriesData] = results
-
-        if (ticketsData) setTickets(ticketsData)
-        if (usersData) setUsers(usersData)
-        if (teamsData) setTeams(teamsData)
-        if (categoriesData) setCategories(categoriesData)
-
-        const failedRequests = results.filter((r) => r === null).length
-        if (failedRequests > 0) {
+        if (ticketsResult.status === "fulfilled") {
+          setTickets(ticketsResult.value)
+        } else {
+          console.error("Failed to fetch tickets:", ticketsResult.reason)
           toast({
-            title: "Warning",
-            description: `Failed to load some data. ${failedRequests} request(s) failed.`,
+            title: "Error",
+            description: "Failed to load tickets. Some features may be limited.",
+            variant: "destructive",
+          })
+        }
+
+        if (usersResult.status === "fulfilled") {
+          setUsers(usersResult.value)
+        } else {
+          console.error("Failed to fetch users:", usersResult.reason)
+          toast({
+            title: "Error",
+            description: "Failed to load users. Some features may be limited.",
+            variant: "destructive",
+          })
+        }
+
+        if (teamsResult.status === "fulfilled") {
+          setTeams(teamsResult.value)
+        } else {
+          console.error("Failed to fetch teams:", teamsResult.reason)
+          toast({
+            title: "Error",
+            description: "Failed to load teams. Some features may be limited.",
+            variant: "destructive",
+          })
+        }
+
+        if (categoriesResult.status === "fulfilled") {
+          setCategories(categoriesResult.value)
+        } else {
+          console.error("Failed to fetch categories:", categoriesResult.reason)
+          toast({
+            title: "Error",
+            description: "Failed to load categories. Some features may be limited.",
+            variant: "destructive",
+          })
+        }
+
+        // Check if all requests failed
+        const allFailed = results.every((result) => result.status === "rejected")
+        if (allFailed) {
+          toast({
+            title: "Error",
+            description: "Failed to load application data. Please try again later.",
             variant: "destructive",
           })
         }
@@ -123,7 +125,7 @@ export default function DashboardPage() {
         console.error("Error fetching data:", error)
         toast({
           title: "Error",
-          description: `Failed to load initial data: ${error instanceof Error ? error.message : "Unknown error"}`,
+          description: error instanceof Error ? error.message : "Failed to load initial data. Please try again.",
           variant: "destructive",
         })
       } finally {
@@ -134,16 +136,10 @@ export default function DashboardPage() {
     fetchData()
   }, [toast])
 
-  const handleNewServiceRequest = async (formData: Omit<Ticket, "id">) => {
+  const handleNewServiceRequest = async (formData: Omit<Ticket, "id" | "createdAt" | "updatedAt">) => {
     try {
-      const response = await fetch("/api/tickets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      })
-      if (!response.ok) throw new Error("Failed to create ticket")
-      const newTicket: Ticket = await response.json()
-      setTickets((prevTickets) => [...prevTickets, newTicket])
+      const newTicket = await createTicket(formData)
+      setTickets((prev) => [...prev, newTicket])
       toast({
         title: "Service Request Created",
         description: "Your service request has been successfully submitted.",
@@ -160,16 +156,8 @@ export default function DashboardPage() {
 
   const handleUpdateTicket = async (updatedTicket: Ticket) => {
     try {
-      const response = await fetch(`/api/tickets/${updatedTicket.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedTicket),
-      })
-      if (!response.ok) throw new Error("Failed to update ticket")
-      const updatedTicketData: Ticket = await response.json()
-      setTickets((prevTickets) =>
-        prevTickets.map((ticket) => (ticket.id === updatedTicketData.id ? updatedTicketData : ticket)),
-      )
+      const updated = await updateTicket(updatedTicket.id, updatedTicket)
+      setTickets((prev) => prev.map((ticket) => (ticket.id === updated.id ? updated : ticket)))
       toast({
         title: "Ticket Updated",
         description: "The ticket has been successfully updated.",
@@ -241,7 +229,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-100">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#f8f9fc]">
       {/* Sidebar for larger screens */}
       <aside className="hidden md:block w-64 bg-white shadow-lg">
         <Sidebar />
@@ -303,16 +291,7 @@ export default function DashboardPage() {
               <DispatchBoard tickets={tickets} onSelectTicket={setSelectedTicket} isLoading={isLoading} />
             </TabsContent>
             <TabsContent value="users">
-              <UserTeamManagement
-                users={users}
-                teams={teams}
-                onUpdateUser={(updatedUser) => {
-                  setUsers((prevUsers) => prevUsers.map((user) => (user.id === updatedUser.id ? updatedUser : user)))
-                }}
-                onUpdateTeam={(updatedTeam) => {
-                  setTeams((prevTeams) => prevTeams.map((team) => (team.id === updatedTeam.id ? updatedTeam : team)))
-                }}
-              />
+              <UserTeamManagement users={users} teams={teams} />
             </TabsContent>
             <TabsContent value="knowledge">
               <KnowledgeBase />

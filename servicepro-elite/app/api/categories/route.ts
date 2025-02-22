@@ -1,38 +1,29 @@
-import { NextResponse } from 'next/server';
-
-interface Category {
-  id: number;
-  name: string;
-}
+import { NextResponse } from "next/server"
+import type { Category } from "@/types"
 
 const categories: Category[] = [
-  { id: 1, name: 'Technical Issue' },
-  { id: 2, name: 'Billing Question' },
-  { id: 3, name: 'Feature Request' },
-];
+  {
+    id: 1,
+    name: "Network",
+  },
+  {
+    id: 2,
+    name: "Hardware",
+  },
+  {
+    id: 3,
+    name: "Software",
+  },
+]
 
 export async function GET() {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return NextResponse.json(categories);
-}
-
-export async function POST(req: Request) {
-  const newCategory: Omit<Category, 'id'> = await req.json();
-  const category: Category = {
-    ...newCategory,
-    id: categories.length + 1
-  };
-  categories.push(category);
-  return NextResponse.json(category);
-}
-
-export async function PUT(req: Request) {
-  const updatedCategory: Category = await req.json();
-  const index = categories.findIndex(c => c.id === updatedCategory.id);
-  if (index !== -1) {
-    categories[index] = updatedCategory;
-    return NextResponse.json(updatedCategory);
+  try {
+    // Simulate network delay
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    return NextResponse.json(categories)
+  } catch (error) {
+    console.error("Error fetching categories:", error)
+    return NextResponse.json({ error: "Failed to fetch categories" }, { status: 500 })
   }
-  return NextResponse.json({ error: 'Category not found' }, { status: 404 });
 }
 

@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,21 +9,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
 
-interface ServiceRequestFormProps {
-  onSubmit: (formData: ServiceRequestFormData) => Promise<any>
-  teams: Team[]
-  users: User[]
-  categories: Category[]
-  isLoading?: boolean
-}
-
-interface ServiceRequestFormData {
-  title: string
-  description: string
-  category: string
-  priority: string
-  assignedTo: string
-  team: string
+interface Folder {
+  id: string
+  name: string
+  type: "folder" | "project" | "task"
+  parentId?: string | null
+  children: string[]
 }
 
 interface Team {
@@ -42,7 +32,33 @@ interface Category {
   name: string
 }
 
-export function ServiceRequestForm({ onSubmit, teams, users, categories, isLoading }: ServiceRequestFormProps) {
+interface ServiceRequestFormData {
+  title: string
+  description: string
+  category: string
+  priority: string
+  assignedTo: string
+  team: string
+  folderId: string
+}
+
+interface ServiceRequestFormProps {
+  onSubmit: (formData: ServiceRequestFormData) => Promise<any>
+  teams: Team[]
+  users: User[]
+  categories: Category[]
+  folders: Folder[]
+  isLoading?: boolean
+}
+
+export function ServiceRequestForm({
+  onSubmit,
+  teams,
+  users,
+  categories,
+  folders,
+  isLoading,
+}: ServiceRequestFormProps) {
   const [formData, setFormData] = useState<ServiceRequestFormData>({
     title: "",
     description: "",
@@ -50,6 +66,7 @@ export function ServiceRequestForm({ onSubmit, teams, users, categories, isLoadi
     priority: "",
     assignedTo: "",
     team: "",
+    folderId: "",
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -60,6 +77,22 @@ export function ServiceRequestForm({ onSubmit, teams, users, categories, isLoadi
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  // Recursive function to build folder options with proper indentation
+  const buildFolderOptions = (folders: Folder[], parentId: string | null = null, level = 0): React.ReactNode[] => {
+    return folders
+      .filter((folder) => folder.parentId === parentId)
+      .flatMap((folder) => {
+        const indent = "—".repeat(level)
+        const children = buildFolderOptions(folders, folder.id, level + 1)
+        return [
+          <SelectItem key={folder.id} value={folder.id}>
+            {indent} {folder.name} ({folder.type})
+          </SelectItem>,
+          ...children,
+        ]
+      })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,6 +116,17 @@ export function ServiceRequestForm({ onSubmit, teams, users, categories, isLoadi
         priority: "",
         assignedTo: "",
         team: "",
+        folderId: "",
+      })
+      toast({
+        title: "Success",
+        description: "Service request created successfully.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create service request. Please try again.",
+        variant: "destructive",
       })
     } finally {
       setIsSubmitting(false)
@@ -98,6 +142,19 @@ export function ServiceRequestForm({ onSubmit, teams, users, categories, isLoadi
       <div>
         <Label htmlFor="description">Description</Label>
         <Textarea id="description" name="description" value={formData.description} onChange={handleChange} required />
+      </div>
+      <div>
+        <Label htmlFor="folder">Folder</Label>
+        <Select
+          name="folderId"
+          value={formData.folderId}
+          onValueChange={(value) => handleSelectChange("folderId", value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select folder" />
+          </SelectTrigger>
+          <SelectContent>{buildFolderOptions(folders)}</SelectContent>
+        </Select>
       </div>
       <div>
         <Label htmlFor="category">Category</Label>
@@ -174,8 +231,8 @@ export function ServiceRequestForm({ onSubmit, teams, users, categories, isLoadi
           </SelectContent>
         </Select>
       </div>
-      <Button type="submit" className="w-full">
-        Submit Request
+      <Button type="submit" className="w-full" disabled={isSubmitting}>
+        {isSubmitting ? "Creating..." : "Submit Request"}
       </Button>
     </form>
   )
