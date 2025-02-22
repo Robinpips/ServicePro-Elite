@@ -1,63 +1,92 @@
-import { useState } from 'react'
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "@/components/ui/use-toast"
 
 interface ServiceRequestFormProps {
-  onSubmit: (formData: ServiceRequestFormData) => void;
-  teams: Team[];
-  users: User[];
-  categories: Category[];
+  onSubmit: (formData: ServiceRequestFormData) => Promise<any>
+  teams: Team[]
+  users: User[]
+  categories: Category[]
+  isLoading?: boolean
 }
 
 interface ServiceRequestFormData {
-  title: string;
-  description: string;
-  category: string;
-  priority: string;
-  assignedTo: string;
-  team: string;
+  title: string
+  description: string
+  category: string
+  priority: string
+  assignedTo: string
+  team: string
 }
 
 interface Team {
-  id: string;
-  name: string;
+  id: string
+  name: string
 }
 
 interface User {
-  id: string;
-  name: string;
+  id: string
+  name: string
 }
 
 interface Category {
-  id: string;
-  name: string;
+  id: string
+  name: string
 }
 
-export function ServiceRequestForm({ onSubmit, teams, users, categories }: ServiceRequestFormProps) {
+export function ServiceRequestForm({ onSubmit, teams, users, categories, isLoading }: ServiceRequestFormProps) {
   const [formData, setFormData] = useState<ServiceRequestFormData>({
-    title: '',
-    description: '',
-    category: '',
-    priority: '',
-    assignedTo: '',
-    team: '',
+    title: "",
+    description: "",
+    category: "",
+    priority: "",
+    assignedTo: "",
+    team: "",
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }))
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit(formData)
+    if (!formData.title || !formData.description) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      await onSubmit(formData)
+      setFormData({
+        title: "",
+        description: "",
+        category: "",
+        priority: "",
+        assignedTo: "",
+        team: "",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -72,20 +101,30 @@ export function ServiceRequestForm({ onSubmit, teams, users, categories }: Servi
       </div>
       <div>
         <Label htmlFor="category">Category</Label>
-        <Select name="category" value={formData.category} onValueChange={(value) => handleSelectChange('category', value)}>
+        <Select
+          name="category"
+          value={formData.category.toString()}
+          onValueChange={(value) => handleSelectChange("category", value)}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select category" />
           </SelectTrigger>
           <SelectContent>
-            {categories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+            {categories?.map((category) => (
+              <SelectItem key={category.id} value={category.id.toString()}>
+                {category.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       <div>
         <Label htmlFor="priority">Priority</Label>
-        <Select name="priority" value={formData.priority} onValueChange={(value) => handleSelectChange('priority', value)}>
+        <Select
+          name="priority"
+          value={formData.priority}
+          onValueChange={(value) => handleSelectChange("priority", value)}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select priority" />
           </SelectTrigger>
@@ -99,31 +138,45 @@ export function ServiceRequestForm({ onSubmit, teams, users, categories }: Servi
       </div>
       <div>
         <Label htmlFor="assignedTo">Assigned To</Label>
-        <Select name="assignedTo" value={formData.assignedTo} onValueChange={(value) => handleSelectChange('assignedTo', value)}>
+        <Select
+          name="assignedTo"
+          value={formData.assignedTo.toString()}
+          onValueChange={(value) => handleSelectChange("assignedTo", value)}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select user" />
           </SelectTrigger>
           <SelectContent>
-            {users.map((user) => (
-              <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+            {users?.map((user) => (
+              <SelectItem key={user.id} value={user.id.toString()}>
+                {user.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
       <div>
         <Label htmlFor="team">Team</Label>
-        <Select name="team" value={formData.team} onValueChange={(value) => handleSelectChange('team', value)}>
+        <Select
+          name="team"
+          value={formData.team.toString()}
+          onValueChange={(value) => handleSelectChange("team", value)}
+        >
           <SelectTrigger>
             <SelectValue placeholder="Select team" />
           </SelectTrigger>
           <SelectContent>
-            {teams.map((team) => (
-              <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+            {teams?.map((team) => (
+              <SelectItem key={team.id} value={team.id.toString()}>
+                {team.name}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
-      <Button type="submit" className="w-full">Submit Request</Button>
+      <Button type="submit" className="w-full">
+        Submit Request
+      </Button>
     </form>
   )
 }

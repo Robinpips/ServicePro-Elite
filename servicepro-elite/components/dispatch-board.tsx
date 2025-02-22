@@ -2,39 +2,52 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Loader2 } from 'lucide-react'
+import { Loader2 } from "lucide-react"
 
 interface Ticket {
-  id: number;
-  title: string;
-  status: string;
-  priority: string;
-  assignedTo: string;
+  id: number
+  title: string
+  status: string
+  priority: string
+  assignedTo: string
 }
 
 interface DispatchBoardProps {
-  tickets: Ticket[];
-  onSelectTicket: (ticket: Ticket) => void;
-  isLoading: boolean;
+  tickets: Ticket[]
+  onSelectTicket: (ticket: Ticket) => void
+  isLoading: boolean
 }
 
 export function DispatchBoard({ tickets, onSelectTicket, isLoading }: DispatchBoardProps) {
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
+    if (!status) return "bg-gray-500"
+
     switch (status.toLowerCase()) {
-      case 'open': return 'bg-green-500'
-      case 'in progress': return 'bg-yellow-500'
-      case 'resolved': return 'bg-blue-500'
-      case 'closed': return 'bg-gray-500'
-      default: return 'bg-gray-500'
+      case "open":
+        return "bg-green-500"
+      case "in progress":
+        return "bg-yellow-500"
+      case "resolved":
+        return "bg-blue-500"
+      case "closed":
+        return "bg-gray-500"
+      default:
+        return "bg-gray-500"
     }
   }
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: string | undefined) => {
+    if (!priority) return "bg-gray-500"
+
     switch (priority.toLowerCase()) {
-      case 'high': return 'bg-red-500'
-      case 'medium': return 'bg-yellow-500'
-      case 'low': return 'bg-green-500'
-      default: return 'bg-gray-500'
+      case "high":
+        return "bg-red-500"
+      case "medium":
+        return "bg-yellow-500"
+      case "low":
+        return "bg-green-500"
+      default:
+        return "bg-gray-500"
     }
   }
 
@@ -67,12 +80,12 @@ export function DispatchBoard({ tickets, onSelectTicket, isLoading }: DispatchBo
                     <TableCell>{ticket.id}</TableCell>
                     <TableCell className="max-w-[150px] hidden sm:table-cell">{ticket.title}</TableCell>
                     <TableCell>
-                      <Badge className={getStatusColor(ticket.status)}>{ticket.status}</Badge>
+                      <Badge className={getStatusColor(ticket.status)}>{ticket.status || "Unknown"}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={getPriorityColor(ticket.priority)}>{ticket.priority}</Badge>
+                      <Badge className={getPriorityColor(ticket.priority)}>{ticket.priority || "Unknown"}</Badge>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">{ticket.assignedTo}</TableCell>
+                    <TableCell className="hidden md:table-cell">{ticket.assignedTo || "Unassigned"}</TableCell>
                     <TableCell>
                       <Button onClick={() => onSelectTicket(ticket)}>View</Button>
                     </TableCell>
