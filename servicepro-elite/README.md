@@ -34,3 +34,5 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+Blue Crest Technologies Inc. - Proprietary Mobile Development and Queuing Platform - Alpha Form - Andrew Castaneda - 941 W Morse Blvd STE 100 Winter Park FL 32789 - 1.800.833.7789
